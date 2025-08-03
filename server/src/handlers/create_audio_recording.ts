@@ -1,19 +1,32 @@
 
+import { db } from '../db';
+import { audioRecordingsTable } from '../db/schema';
 import { type CreateAudioRecordingInput, type AudioRecording } from '../schema';
 
-export async function createAudioRecording(input: CreateAudioRecordingInput): Promise<AudioRecording> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new audio recording record with metadata
-    // including file path, duration, format, and technical specifications.
-    return Promise.resolve({
-        id: Math.floor(Math.random() * 1000000),
+export const createAudioRecording = async (input: CreateAudioRecordingInput): Promise<AudioRecording> => {
+  try {
+    // Insert audio recording record
+    const result = await db.insert(audioRecordingsTable)
+      .values({
         session_id: input.session_id,
         file_path: input.file_path,
-        duration: input.duration,
-        sample_rate: input.sample_rate,
-        channels: input.channels,
+        duration: input.duration.toString(), // Convert number to string for numeric column
+        sample_rate: input.sample_rate, // Integer column - no conversion needed
+        channels: input.channels, // Integer column - no conversion needed
         format: input.format,
-        file_size: input.file_size,
-        created_at: new Date()
-    } as AudioRecording);
-}
+        file_size: input.file_size // Integer column - no conversion needed
+      })
+      .returning()
+      .execute();
+
+    // Convert numeric fields back to numbers before returning
+    const audioRecording = result[0];
+    return {
+      ...audioRecording,
+      duration: parseFloat(audioRecording.duration) // Convert string back to number
+    };
+  } catch (error) {
+    console.error('Audio recording creation failed:', error);
+    throw error;
+  }
+};

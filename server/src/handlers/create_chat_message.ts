@@ -1,17 +1,30 @@
 
+import { db } from '../db';
+import { chatMessagesTable } from '../db/schema';
 import { type CreateChatMessageInput, type ChatMessage } from '../schema';
 
-export async function createChatMessage(input: CreateChatMessageInput): Promise<ChatMessage> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new chat message (text or audio) 
-    // associated with a session and persisting it in the database.
-    return Promise.resolve({
-        id: Math.floor(Math.random() * 1000000),
+export const createChatMessage = async (input: CreateChatMessageInput): Promise<ChatMessage> => {
+  try {
+    // Insert chat message record
+    const result = await db.insert(chatMessagesTable)
+      .values({
         session_id: input.session_id,
         message_type: input.message_type,
         content: input.content,
         transcription: input.transcription,
-        audio_duration: input.audio_duration,
-        created_at: new Date()
-    } as ChatMessage);
-}
+        audio_duration: input.audio_duration ? input.audio_duration.toString() : null // Convert number to string for numeric column
+      })
+      .returning()
+      .execute();
+
+    // Convert numeric fields back to numbers before returning
+    const message = result[0];
+    return {
+      ...message,
+      audio_duration: message.audio_duration ? parseFloat(message.audio_duration) : null // Convert string back to number
+    };
+  } catch (error) {
+    console.error('Chat message creation failed:', error);
+    throw error;
+  }
+};

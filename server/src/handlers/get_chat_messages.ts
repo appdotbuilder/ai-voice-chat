@@ -1,9 +1,24 @@
 
+import { db } from '../db';
+import { chatMessagesTable } from '../db/schema';
 import { type ChatMessage } from '../schema';
+import { eq, asc } from 'drizzle-orm';
 
 export async function getChatMessages(sessionId: string): Promise<ChatMessage[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all chat messages for a specific session
-    // from the database, ordered by creation time.
-    return Promise.resolve([]);
+  try {
+    const results = await db.select()
+      .from(chatMessagesTable)
+      .where(eq(chatMessagesTable.session_id, sessionId))
+      .orderBy(asc(chatMessagesTable.created_at))
+      .execute();
+
+    // Convert numeric fields back to numbers
+    return results.map(message => ({
+      ...message,
+      audio_duration: message.audio_duration ? parseFloat(message.audio_duration) : null
+    }));
+  } catch (error) {
+    console.error('Failed to get chat messages:', error);
+    throw error;
+  }
 }
